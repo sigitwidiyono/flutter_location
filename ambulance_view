@@ -1,0 +1,442 @@
+import 'dart:async';
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:pdd/beranda/beranda_bottom.dart';
+import 'package:http/http.dart' as http;
+import 'package:pdd/sessi/login_view.dart';
+import 'package:location/location.dart';
+
+class AmbulancePage extends StatefulWidget {
+  @override
+  _AmbulancePageState createState() => new _AmbulancePageState();
+}
+
+class _AmbulancePageState extends State<AmbulancePage> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  bool visible = false;
+
+  // location
+  Location location = Location();
+  Map<String, double>? currentLocation;
+
+  // inisiasi form builder
+  final hpController = TextEditingController();
+  final namaController = TextEditingController();
+  final infoController = TextEditingController();
+  final lokasiController = TextEditingController();
+  final latController = TextEditingController();
+  final lngController = TextEditingController();
+  var urlLink;
+  var desaController = '6208042001';
+
+  @override
+  void initState() {
+    super.initState();
+    location.onLocationChanged.listen((value) {
+      setState(() {
+        currentLocation = value;
+      });
+    });
+  }
+
+  Future ambulanceProses(String desax, String namax, String hpx, String infox,
+      String lokasix) async {
+    setState(() {
+      visible = true;
+    });
+
+    urlLink = 'https://vilage.com/ambulance';
+    var data = {
+      'hp': hpx,
+      'desa': desax,
+      'nama': namax,
+      'lokasi': lokasix,
+      'info': infox
+    };
+    var response = await http.post(Uri.parse(urlLink), body: data);
+    if (response.statusCode == 200) {
+      var message = jsonDecode(response.body);
+      print("Status Registrasi: " + message['status'].toString());
+      if (message['status'] == 1) {
+        setState(() {
+          visible = false;
+        });
+        Fluttertoast.showToast(
+            msg: message['ket'],
+            backgroundColor: Colors.black,
+            textColor: Colors.white);
+        Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (BuildContext context) => LoginPage()),
+            (route) => false);
+      } else {
+        setState(() {
+          visible = false;
+        });
+
+        // Showing Alert Dialog with Response JSON Message.
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: new Text("Perhatian!",
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                  )),
+              content: new Text(message['ket']),
+              actions: <Widget>[
+                TextButton(
+                  child: new Text(
+                    "Tutup",
+                    style: TextStyle(
+                      fontSize: 16.0,
+                      color: Colors.black,
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      }
+    } else {
+      throw Exception();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    SystemChrome.setPreferredOrientations(
+      [
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.portraitDown,
+      ],
+    );
+    return Scaffold(
+      appBar: new AppBar(
+        title: new Text("Ambulance Desa"),
+        leading: new IconButton(
+          icon: new Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
+          onPressed: () {
+            print("Kembali");
+            Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(
+                    builder: (BuildContext context) => BerandaBot()),
+                (route) => false);
+          },
+        ),
+      ),
+      body: new Container(
+        padding: EdgeInsets.all(4.0),
+        child: ListView(
+          children: <Widget>[
+            new Center(
+              child: new Form(
+                key: _formKey,
+                child: Container(
+                  child: new Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
+                      new Padding(
+                        padding: EdgeInsets.all(10.0),
+                        child: new Image.asset(
+                          "assets/images/ambulancedesa.png",
+                          width: 100.0,
+                          height: 100.0,
+                        ),
+                      ),
+                      new Padding(
+                        padding: EdgeInsets.only(top: 10.0),
+                        child: new Text(
+                          "PERMOHONAN BANTUAN",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 16.0,
+                            color: Colors.blue,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      new Padding(
+                        padding: EdgeInsets.only(top: 3.0),
+                        child: new Text(
+                          "AMBULANCE DESA",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 16.0,
+                            color: Colors.blue,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      new Padding(
+                        padding: EdgeInsets.only(
+                          top: 30.0,
+                          left: 16.0,
+                          right: 16.0,
+                        ),
+                        child: new TextFormField(
+                          controller: namaController,
+                          keyboardType: TextInputType.text,
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 16.0,
+                          ),
+                          decoration: new InputDecoration(
+                            hintText: "Masukkan Nama",
+                            labelText: "Nama Pemohon",
+                            border: OutlineInputBorder(
+                              borderRadius: new BorderRadius.circular(5.0),
+                            ),
+                            labelStyle: TextStyle(color: Colors.blue),
+                          ),
+                          validator: (value) {
+                            if (value == "") {
+                              return "Nama is required";
+                            } else {
+                              return null;
+                            }
+                          },
+                        ),
+                      ),
+                      new Padding(
+                        padding: EdgeInsets.only(
+                          top: 15.0,
+                          left: 16.0,
+                          right: 16.0,
+                        ),
+                        child: new TextFormField(
+                          controller: hpController,
+                          keyboardType: TextInputType.number,
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 16.0,
+                          ),
+                          decoration: new InputDecoration(
+                            hintText: "Masukan Nomor HP/WA",
+                            labelText: "HP/ WA",
+                            border: OutlineInputBorder(
+                              borderRadius: new BorderRadius.circular(5.0),
+                            ),
+                            labelStyle: TextStyle(color: Colors.blue),
+                          ),
+                          validator: (value) {
+                            if (value == "") {
+                              return "HP/ WA is required";
+                            } else {
+                              return null;
+                            }
+                          },
+                        ),
+                      ),
+                      new Padding(
+                        padding: EdgeInsets.only(
+                          top: 15.0,
+                          left: 16.0,
+                          right: 16.0,
+                        ),
+                        child: new TextFormField(
+                          controller: lokasiController,
+                          keyboardType: TextInputType.multiline,
+                          maxLines: null,
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 16.0,
+                          ),
+                          decoration: new InputDecoration(
+                            hintText: "Lokasi Kejadian",
+                            labelText: "Lokasi Kejadian",
+                            border: OutlineInputBorder(
+                              borderRadius: new BorderRadius.circular(5.0),
+                            ),
+                            labelStyle: TextStyle(color: Colors.blue),
+                          ),
+                          validator: (value) {
+                            if (value == "") {
+                              return "Informasi is required";
+                            } else {
+                              return null;
+                            }
+                          },
+                        ),
+                      ),
+                      new Padding(
+                        padding: EdgeInsets.only(
+                          top: 15.0,
+                          left: 16.0,
+                          right: 16.0,
+                        ),
+                        child: new TextFormField(
+                          controller: infoController,
+                          keyboardType: TextInputType.multiline,
+                          maxLines: null,
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 16.0,
+                          ),
+                          decoration: new InputDecoration(
+                            hintText: "Informasi Tambahan",
+                            labelText: "Informasi Tambahan",
+                            border: OutlineInputBorder(
+                              borderRadius: new BorderRadius.circular(5.0),
+                            ),
+                            labelStyle: TextStyle(color: Colors.blue),
+                          ),
+                          validator: (value) {
+                            if (value == "") {
+                              return "Informasi is required";
+                            } else {
+                              return null;
+                            }
+                          },
+                        ),
+                      ),
+                      new Padding(
+                        padding: EdgeInsets.only(
+                          top: 30.0,
+                          left: 16.0,
+                          right: 16.0,
+                        ),
+                        child: new DropdownButtonFormField(
+                          decoration: InputDecoration(
+                            labelText: "Area Ambulance Terdekat",
+                            border: OutlineInputBorder(
+                              borderRadius: new BorderRadius.circular(5.0),
+                            ),
+                            labelStyle: TextStyle(color: Colors.blue),
+                          ),
+                          value: desaController,
+                          items: [
+                            DropdownMenuItem(
+                              value: '6208042001',
+                              child: Text('Ds. Sungai Damar'),
+                            ),
+                            DropdownMenuItem(
+                              value: '6208042002',
+                              child: Text('Ds. Sungai Tabuk'),
+                            ),
+                            DropdownMenuItem(
+                              value: '6208042003',
+                              child: Text('Ds. Sungai Cabang Barat'),
+                            ),
+                            DropdownMenuItem(
+                              value: '6208042004',
+                              child: Text('Ds. Sungai Pasir'),
+                            ),
+                          ],
+                          onChanged: (value) {
+                            setState(() => desaController = value.toString());
+                            print('$value');
+                          },
+                          validator: (value) {
+                            if (value == "") {
+                              return "Lokasi is required";
+                            } else {
+                              return null;
+                            }
+                          },
+                        ),
+                      ),
+                      visible
+                          ? new Padding(
+                              padding: EdgeInsets.only(
+                                top: 20.0,
+                                left: 16.0,
+                                right: 16.0,
+                                bottom: 30.0,
+                              ),
+                              child: new Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                            )
+                          : new Padding(
+                              padding: EdgeInsets.only(
+                                top: 20.0,
+                                left: 16.0,
+                                right: 16.0,
+                                bottom: 30.0,
+                              ),
+                              child: new Container(
+                                width: double.maxFinite,
+                                height: 50,
+                                child: ElevatedButton.icon(
+                                  icon: Icon(
+                                    Icons.directions_car_outlined,
+                                    color: Colors.white,
+                                    size: 24.0,
+                                  ),
+                                  label: Text(
+                                    'Panggil Ambulance',
+                                    style: TextStyle(
+                                      fontSize: 16.0,
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    print('Simpan');
+                                    if (_formKey.currentState!.validate()) {
+                                      ambulanceProses(
+                                          desaController.toString(),
+                                          namaController.text,
+                                          hpController.text,
+                                          infoController.text,
+                                          lokasiController.text);
+                                    }
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    shape: new RoundedRectangleBorder(
+                                      borderRadius:
+                                          new BorderRadius.circular(15.0),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                      new Padding(
+                        padding:
+                            EdgeInsets.only(top: 5.0, left: 16.0, right: 16.0),
+                        child: new Text(
+                          "Para pengguna aplikasi permintaan bantuan ambulance desa agar memberikan informasi yang jelas dan benar, permohonan fiktif/ palsu adalah perbuatan melanggar hukum",
+                          textAlign: TextAlign.left,
+                          style: TextStyle(
+                            fontSize: 14.0,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ),
+                      new Padding(
+                        padding: EdgeInsets.only(
+                            top: 15.0, left: 16.0, right: 16.0, bottom: 20.0),
+                        child: new Text(
+                          "Bagi desa-desa di Kabupaten Sukamara yang berkeinginan memanfaatkan aplikasi ambulance desa dapat menghubungi Seksi APTIKA Diskominfosandi Kabupaten Sukamara ",
+                          textAlign: TextAlign.left,
+                          style: TextStyle(
+                            fontSize: 14.0,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ),
+                      currentLocation == null
+                          ? CircularProgressIndicator()
+                          : new Text("Location:" +
+                              currentLocation!["latitude"].toString() +
+                              " " +
+                              currentLocation!["longitude"].toString()),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
